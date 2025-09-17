@@ -1,0 +1,25 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <!-- Ez minden pom.xml alapja -->
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Azonosító a projekthez -->
+    <groupId>org.example</groupId>
+    <artifactId>koltsegKoveto</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <!-- Nagyon fontos: ez jelzi, hogy több modul tartozik ide -->
+    <packaging>pom</packaging>
+
+    <modules>
+        <!-- Backend modul -->
+        <module>koltsegKovetoBackend</module>
+
+        <!-- Frontend modul -->
+        <module>koltsegKovetoFrontend</module>
+    </modules>
+
+</project>
