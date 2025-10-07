@@ -1,0 +1,39 @@
+### Kategória létrehozása
+POST http://localhost:8080/categories
+Content-Type: application/json
+
+{
+  "name": "Élelmiszer"
+}
+
+### Új tranzakció létrehozása kategóriával
+POST http://localhost:8080/transactions
+Content-Type: application/json
+
+{
+  "description": "Kenyér vásárlás",
+  "amount": -500,
+  "date": "2025-09-23",
+  "category": {
+    "id": 1
+  }
+}
+
+### Még egy tranzakció másik kategóriával (ha létrehozol pl. 'Rezsi'-t)
+POST http://localhost:8080/transactions
+Content-Type: application/json
+
+{
+  "description": "Villanyszámla",
+  "amount": -12000,
+  "date": "2025-09-20",
+  "category": {
+    "id": 2
+  }
+}
+
+### Tranzakciók lekérdezése
+GET http://localhost:8080/transactions
+
+### Kategóriák lekérdezése
+GET http://localhost:8080/categories
