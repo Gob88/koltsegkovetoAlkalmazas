@@ -1,7 +1,6 @@
 package org.example.koltsegkoveto.backend.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDate;
 
 @Entity
@@ -19,7 +18,6 @@ public class Transaction {
     @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;
-
 
     public Transaction() {
     }
@@ -56,12 +54,19 @@ public class Transaction {
         this.amount = amount;
     }
 
-
     public LocalDate getDate() {
         return date;
     }
 
     public void setDate(LocalDate date) {
         this.date = date;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category cat) {
+        this.category = cat; //  javítva
     }
 }

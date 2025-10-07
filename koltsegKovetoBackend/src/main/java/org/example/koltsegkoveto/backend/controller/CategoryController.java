@@ -1,8 +1,8 @@
 package org.example.koltsegkoveto.backend.controller;
 
 import org.example.koltsegkoveto.backend.entity.Category;
-import org.example.koltsegkoveto.backend.repository.CategoryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.example.koltsegkoveto.backend.service.CategoryService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,20 +11,50 @@ import java.util.List;
 @RequestMapping("/categories")
 public class CategoryController {
 
-    private final CategoryRepository categoryRepository;
+    private final CategoryService categoryService;
 
-    @Autowired
-    public CategoryController(CategoryRepository categoryRepository) {
-        this.categoryRepository = categoryRepository;
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
     }
 
+    // Összes kategória lekérése
     @GetMapping
     public List<Category> getAllCategories() {
-        return categoryRepository.findAll();
+        return categoryService.getAllCategories();
     }
 
+    // Egy kategória lekérése ID alapján
+    @GetMapping("/{id}")
+    public ResponseEntity<Category> getCategoryById(@PathVariable Long id) {
+        return categoryService.getCategoryById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Új kategória létrehozása
     @PostMapping
     public Category createCategory(@RequestBody Category category) {
-        return categoryRepository.save(category);
+        return categoryService.createCategory(category);
+    }
+
+    // Kategória frissítése
+    @PutMapping("/{id}")
+    public ResponseEntity<Category> updateCategory(
+            @PathVariable Long id,
+            @RequestBody Category categoryDetails) {
+        return categoryService.updateCategory(id, categoryDetails)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Kategória törlése
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        boolean deleted = categoryService.deleteCategory(id);
+        if (deleted) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

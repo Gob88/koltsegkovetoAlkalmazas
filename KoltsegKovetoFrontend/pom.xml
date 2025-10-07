@@ -5,7 +5,6 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Szülő projektre hivatkozás -->
     <parent>
         <groupId>org.example</groupId>
         <artifactId>koltsegKoveto</artifactId>
@@ -23,7 +22,7 @@
     </properties>
 
     <dependencies>
-        <!-- JavaFX modulok (grafika, vezérlők, FXML) -->
+        <!-- JavaFX modulok -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -31,51 +30,28 @@
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
-            <artifactId>javafx-fxml</artifactId>
+            <artifactId>javafx-graphics</artifactId>
             <version>${javafx.version}</version>
         </dependency>
 
-        <!-- LocalDate mező feldolgozása -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-            <version>2.17.2</version>
-        </dependency>
-
-        <!-- HTTP kliens, hogy kommunikáljon a backenddel -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-            <version>6.1.11</version>
-        </dependency>
-        <!-- Jackson core -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.17.2</version>
-        </dependency>
-
-        <!-- Jackson databind (ObjectMapper miatt) -->
+        <!-- JSON kezeléshez -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.17.2</version>
         </dependency>
-
-        <!-- Jackson annotations -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>2.17.2</version>
-        </dependency>
-
-        <!-- Java 8 időtípusok (LocalDate) támogatás -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>2.17.2</version>
         </dependency>
 
+        <!-- Spring Web kliens -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <version>6.1.13</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -89,14 +65,18 @@
                     <mainClass>org.example.koltsegkoveto.frontend.KoltsegKovetoFrontendApplication</mainClass>
                 </configuration>
             </plugin>
+
+            <!-- Fordító plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
                 <configuration>
-                    <source>11</source>
-                    <target>11</target>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
 </project>

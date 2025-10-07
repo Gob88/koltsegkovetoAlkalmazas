@@ -1,43 +1,36 @@
 package org.example.koltsegkoveto.frontend.service;
 
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.koltsegkoveto.frontend.model.Transaction;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class TransactionService {
+
+    private final RestTemplate restTemplate = new RestTemplate();
     private static final String BASE_URL = "http://localhost:8080/transactions";
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
 
-    public Transaction createTransaction(Transaction transaction) {
-        try {
-            return restTemplate.postForObject(BASE_URL, transaction, Transaction.class);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-
-    public TransactionService() {
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = new ObjectMapper()
-                .registerModule(new JavaTimeModule())              // LocalDate támogatás
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); // ISO-8601 formátum
-    }
-
+    // --- LIST ---
     public List<Transaction> getAllTransactions() {
-        try {
-            String response = restTemplate.getForObject(BASE_URL, String.class);
-            return objectMapper.readValue(response, new TypeReference<List<Transaction>>() {});
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        }
+        ResponseEntity<Transaction[]> response =
+                restTemplate.getForEntity(BASE_URL, Transaction[].class);
+        return Arrays.asList(response.getBody());
+    }
+
+    // --- CREATE ---
+    public Transaction createTransaction(Transaction transaction) {
+        return restTemplate.postForObject(BASE_URL, transaction, Transaction.class);
+    }
+
+    // --- UPDATE ---
+    public void updateTransaction(Long id, Transaction transaction) {
+        restTemplate.put(BASE_URL + "/" + id, transaction);
+    }
+
+    // --- DELETE ---
+    public void deleteTransaction(Long id) {
+        restTemplate.delete(BASE_URL + "/" + id);
     }
 }

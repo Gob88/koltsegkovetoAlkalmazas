@@ -1,39 +1,33 @@
 package org.example.koltsegkoveto.frontend.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.koltsegkoveto.frontend.model.Category;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class CategoryService {
-    private static final String BASE_URL = "http://localhost:8080/categories";
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
 
-    public CategoryService() {
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = new ObjectMapper();
+    private final RestTemplate restTemplate = new RestTemplate();
+    private static final String BASE_URL = "http://localhost:8080/categories";
+
+    public List<Category> getAllCategories() {
+        ResponseEntity<Category[]> response =
+                restTemplate.getForEntity(BASE_URL, Category[].class);
+        Category[] body = response.getBody();
+        return body == null ? List.of() : Arrays.asList(body);
     }
 
     public Category createCategory(Category category) {
-        try {
-            RestTemplate restTemplate = new RestTemplate();
-            return restTemplate.postForObject(BASE_URL, category, Category.class);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        return restTemplate.postForObject(BASE_URL, category, Category.class);
     }
 
-    public List<Category> getAllCategories() {
-        try {
-            String response = restTemplate.getForObject(BASE_URL, String.class);
-            return objectMapper.readValue(response, new TypeReference<List<Category>>() {});
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        }
+    public void updateCategory(Long id, Category category) {
+        restTemplate.put(BASE_URL + "/" + id, category);
+    }
+
+    public void deleteCategory(Long id) {
+        restTemplate.delete(BASE_URL + "/" + id);
     }
 }
