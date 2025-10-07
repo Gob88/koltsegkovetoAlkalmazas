@@ -210,14 +210,43 @@ public class KoltsegKovetoFrontendApplication extends Application {
     }
 
     private void editTransaction(Transaction t) {
-        TextInputDialog dialog = new TextInputDialog(t.getDescription());
+        Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Tranzakció szerkesztése");
-        dialog.setHeaderText("Leírás módosítása");
-        dialog.setContentText("Új leírás:");
-        dialog.showAndWait().ifPresent(newDesc -> {
-            t.setDescription(newDesc);
-            transactionService.updateTransaction(t.getId(), t);
-            loadAllTransactions();
+        dialog.setHeaderText("Módosítsd az adatokat:");
+
+        // --- Layout ---
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(15));
+
+        TextField descField = new TextField(t.getDescription());
+        TextField amountField = new TextField(String.valueOf(t.getAmount()));
+        ComboBox<Category> categoryBoxEdit = new ComboBox<>();
+        categoryBoxEdit.setItems(FXCollections.observableArrayList(categoryService.getAllCategories()));
+        if (t.getCategory() != null) {
+            categoryBoxEdit.getSelectionModel().select(t.getCategory());
+        }
+
+        grid.addRow(0, new Label("Leírás:"), descField);
+        grid.addRow(1, new Label("Összeg:"), amountField);
+        grid.addRow(2, new Label("Kategória:"), categoryBoxEdit);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.showAndWait().ifPresent(result -> {
+            if (result == ButtonType.OK) {
+                try {
+                    t.setDescription(descField.getText());
+                    t.setAmount(Double.parseDouble(amountField.getText()));
+                    t.setCategory(categoryBoxEdit.getValue());
+                    transactionService.updateTransaction(t.getId(), t);
+                    loadAllTransactions();
+                } catch (Exception e) {
+                    showError("Hiba a módosítás mentésekor: " + e.getMessage());
+                }
+            }
         });
     }
 
