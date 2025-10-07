@@ -29,6 +29,7 @@ public class KoltsegKovetoFrontendApplication extends Application {
     private ComboBox<Category> categoryBox;
     private PieChart pieChart;
     private ComboBox<String> monthSelector;
+    private Label budgetInfoLabel;
 
     private List<Transaction> allTransactions = new ArrayList<>();
 
@@ -39,8 +40,24 @@ public class KoltsegKovetoFrontendApplication extends Application {
             "#009688", "#795548", "#3F51B5", "#E91E63", "#607D8B"
     );
 
+    private double monthlyLimit = 0.0;
+
     @Override
     public void start(Stage stage) {
+        // --- Limit bekérése ---
+        TextInputDialog limitDialog = new TextInputDialog();
+        limitDialog.setTitle("Havi költségkeret beállítása");
+        limitDialog.setHeaderText("Add meg a havi fizetésed összegét (nettó):");
+        limitDialog.setContentText("Összeg (Ft):");
+        limitDialog.showAndWait().ifPresent(value -> {
+            try {
+                monthlyLimit = Double.parseDouble(value);
+            } catch (NumberFormatException e) {
+                showError("Érvénytelen számformátum! A havi keret 0-ra állítva.");
+                monthlyLimit = 0;
+            }
+        });
+
         table = new TableView<>();
 
         TableColumn<Transaction, Long> idCol = new TableColumn<>("ID");
@@ -58,21 +75,58 @@ public class KoltsegKovetoFrontendApplication extends Application {
         TableColumn<Transaction, String> categoryCol = new TableColumn<>("Kategória");
         categoryCol.setCellValueFactory(cell -> {
             Category c = cell.getValue().getCategory();
-            String name = (c != null) ? c.getName() : "";
-            return new javafx.beans.property.ReadOnlyStringWrapper(name);
+            return new javafx.beans.property.ReadOnlyStringWrapper(c != null ? c.getName() : "");
         });
 
-        table.getColumns().addAll(idCol, descCol, amountCol, dateCol, categoryCol);
+        // --- Műveletek oszlop (Szerk. + Törlés) ---
+        TableColumn<Transaction, Void> actionsCol = new TableColumn<>("Műveletek");
+        actionsCol.setCellFactory(col -> new TableCell<>() {
+            private final Button editBtn = new Button("Szerk.");
+            private final Button delBtn = new Button("Törlés");
+
+            {
+                editBtn.setOnAction(e -> {
+                    Transaction t = getTableView().getItems().get(getIndex());
+                    editTransaction(t);
+                });
+
+                delBtn.setOnAction(e -> {
+                    Transaction t = getTableView().getItems().get(getIndex());
+                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                    confirm.setTitle("Törlés megerősítése");
+                    confirm.setHeaderText("Biztosan törölni szeretnéd?");
+                    confirm.setContentText(t.getDescription());
+                    confirm.showAndWait().ifPresent(r -> {
+                        if (r == ButtonType.OK) {
+                            transactionService.deleteTransaction(t.getId());
+                            loadAllTransactions();
+                        }
+                    });
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    HBox box = new HBox(5, editBtn, delBtn);
+                    setGraphic(box);
+                }
+            }
+        });
+
+        table.getColumns().addAll(idCol, descCol, amountCol, dateCol, categoryCol, actionsCol);
 
         // --- Hónapválasztó ---
         monthSelector = new ComboBox<>();
         monthSelector.setPromptText("Válassz hónapot...");
         monthSelector.setOnAction(e -> refreshData());
-
         HBox monthBox = new HBox(10, new Label("Hónap:"), monthSelector);
         monthBox.setPadding(new Insets(10));
 
-        // --- Tranzakció űrlap ---
+        // --- Új tranzakció űrlap ---
         GridPane form = new GridPane();
         form.setPadding(new Insets(10));
         form.setHgap(10);
@@ -131,11 +185,14 @@ public class KoltsegKovetoFrontendApplication extends Application {
         form.addRow(5, new Label("Új kategória:"), newCategoryField);
         form.addRow(6, addCategoryBtn);
 
-        // --- Diagram ---
+        // --- Diagram és limit info ---
         pieChart = new PieChart();
         pieChart.setTitle("Kategóriák szerinti összesítés");
 
-        VBox right = new VBox(12, form, pieChart);
+        budgetInfoLabel = new Label("Havi limit: még nincs adat.");
+        budgetInfoLabel.setStyle("-fx-font-weight: bold; -fx-padding: 10;");
+
+        VBox right = new VBox(12, form, pieChart, budgetInfoLabel);
         right.setPadding(new Insets(10));
 
         BorderPane root = new BorderPane();
@@ -143,13 +200,25 @@ public class KoltsegKovetoFrontendApplication extends Application {
         root.setCenter(table);
         root.setRight(right);
 
-        Scene scene = new Scene(root, 1000, 650);
+        Scene scene = new Scene(root, 1100, 650);
         stage.setScene(scene);
         stage.setTitle("Költségkövető");
         stage.show();
 
         loadCategories();
         loadAllTransactions();
+    }
+
+    private void editTransaction(Transaction t) {
+        TextInputDialog dialog = new TextInputDialog(t.getDescription());
+        dialog.setTitle("Tranzakció szerkesztése");
+        dialog.setHeaderText("Leírás módosítása");
+        dialog.setContentText("Új leírás:");
+        dialog.showAndWait().ifPresent(newDesc -> {
+            t.setDescription(newDesc);
+            transactionService.updateTransaction(t.getId(), t);
+            loadAllTransactions();
+        });
     }
 
     private void loadCategories() {
@@ -193,9 +262,9 @@ public class KoltsegKovetoFrontendApplication extends Application {
         updateChart(filtered);
     }
 
-    // --- Kategóriák szerinti összesítés és színezés ---
     private void updateChart(List<Transaction> transactions) {
         double incomeSum = 0.0;
+        double totalExpenses = 0.0;
         Map<String, Double> expenses = new LinkedHashMap<>();
 
         for (Transaction t : transactions) {
@@ -207,17 +276,13 @@ public class KoltsegKovetoFrontendApplication extends Application {
                         ? t.getCategory().getName()
                         : "Ismeretlen";
                 expenses.put(name, expenses.getOrDefault(name, 0.0) + Math.abs(amount));
+                totalExpenses += Math.abs(amount);
             }
         }
 
         ObservableList<PieChart.Data> data = FXCollections.observableArrayList();
 
-        // Bevétel
-        if (incomeSum > 0) {
-            data.add(new PieChart.Data("Bevétel", incomeSum));
-        }
-
-        // Kiadások
+        if (incomeSum > 0) data.add(new PieChart.Data("Bevétel", incomeSum));
         expenses.forEach((k, v) -> data.add(new PieChart.Data(k, v)));
 
         pieChart.setData(data);
@@ -225,15 +290,40 @@ public class KoltsegKovetoFrontendApplication extends Application {
         // Színezés
         int colorIndex = 0;
         for (PieChart.Data d : data) {
-            String color;
-            if (d.getName().equals("Bevétel")) {
-                color = incomeColor;
-            } else {
-                color = expenseColors.get(colorIndex % expenseColors.size());
-                colorIndex++;
-            }
+            String color = d.getName().equals("Bevétel")
+                    ? incomeColor
+                    : expenseColors.get(colorIndex++ % expenseColors.size());
             d.getNode().setStyle("-fx-pie-color: " + color + ";");
         }
+
+        // --- Limit figyelés ---
+        if (monthlyLimit > 0) {
+            double percent = (totalExpenses / monthlyLimit) * 100;
+            String info = String.format("Havi limit: %.0f Ft | Kiadás: %.0f Ft (%.0f%%)",
+                    monthlyLimit, totalExpenses, percent);
+            budgetInfoLabel.setText(info);
+
+            if (percent >= 100) {
+                budgetInfoLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                showWarning("Túllépted a havi költségkeretet!");
+            } else if (percent >= 80) {
+                budgetInfoLabel.setStyle("-fx-text-fill: orange; -fx-font-weight: bold;");
+                showWarning("Közel vagy a havi limithez!");
+            } else {
+                budgetInfoLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+            }
+        } else {
+            budgetInfoLabel.setText("Havi limit: nincs megadva.");
+            budgetInfoLabel.setStyle("-fx-text-fill: black;");
+        }
+    }
+
+    private void showWarning(String message) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("Költségfigyelmeztetés");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     private void showError(String message) {
